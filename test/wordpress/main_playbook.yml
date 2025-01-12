@@ -1,0 +1,19 @@
+---
+- name: Executer les procédures avec des playbooks génériques
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Afficher un message avant d'installer Python
+      debug:
+        msg: "Installation de Python et de ses dépendances en cours..."
+
+    - name: Lancer la playbook pour installer python et ses dépendances
+      import_tasks: "~/ressources/playbook/install-python.yml"
+
+    - name: Afficher un message avant d'installer Docker
+      debug:
+        msg: "Installation de Docker et de ses dépendances en cours..."
+
+    - name: Lancer le playbook pour installer docker
+      import_tasks: "~/ressources/playbook/install-docker.yml"

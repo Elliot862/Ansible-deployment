@@ -1,0 +1,85 @@
+---
+- name: Configurer et déployer Zabbix Server avec base de données
+  hosts: zabbix_server
+  become: yes
+  vars:
+    # Définir le mot de passe de la base de données
+    passwd: "password"  
+  tasks:
+    
+    # Vérification si Zabbix Server est démarré
+    - name: Vérifier si le service Zabbix Server est démarré
+      systemd:
+        name: zabbix-server
+        state: started
+      register: zabbix_status
+      ignore_errors: yes
+
+    - name: Afficher le statut du service Zabbix Server
+      debug:
+        var: zabbix_status
+
+    # Modifier la configuration de la base de données si nécessaire
+    - name: Modifier la configuration de Zabbix Server pour utiliser une base de données distante
+      block:
+        - name: Décommenter la ligne DBHost et définir l'adresse de la base de données
+          lineinfile:
+            path: /etc/zabbix/zabbix_server.conf
+            regexp: '^#DBHost='
+            line: 'DBHost=192.168.1.20'   # Remplacer par l'IP ou le nom de votre serveur DB
+            state: present
+
+        - name: Décommenter la ligne DBPassword et définir le mot de passe
+          lineinfile:
+            path: /etc/zabbix/zabbix_server.conf
+            regexp: '^#DBPassword='
+            line: 'DBPassword={{ passwd }}'     # Utilisation de la variable passwd
+            state: present
+
+        - name: Vérifier si DBHost est bien configuré
+          debug:
+            msg: "La configuration DBHost est correcte."
+
+        - name: Vérifier si DBPassword est bien configuré
+          debug:
+            msg: "Le mot de passe de la base de données est configuré."
+
+    # Redémarrer Zabbix Server après modification de la configuration
+    - name: Redémarrer le service Zabbix Server
+      systemd:
+        name: zabbix-server
+        state: restarted
+      when: zabbix_status is success
+
+    # Vérification du statut après redémarrage
+    - name: Vérifier à nouveau le statut du service Zabbix Server
+      systemd:
+        name: zabbix-server
+        state: started
+      register: final_zabbix_status
+
+    - name: Afficher le statut final du service Zabbix Server
+      debug:
+        var: final_zabbix_status
+
+    # Test de la connectivité à la base de données
+    - name: Tester la connexion à la base de données
+      shell: mysql -u zabbix -p{{ passwd }} -h 192.168.1.20 -e 'SHOW DATABASES;'  # Assurez-vous d'utiliser la commande correcte pour votre DB
+      register: db_test_result
+      failed_when: db_test_result.rc != 0
+      changed_when: false
+
+    - name: Afficher le résultat du test de connexion à la base de données
+      debug:
+        var: db_test_result
+
+    # Récupérer les logs de Zabbix Server
+    - name: Afficher les logs de Zabbix Server pour les erreurs
+      command: tail -n 10 /var/log/zabbix/zabbix_server.log
+      register: zabbix_logs
+      failed_when: zabbix_logs.rc != 0
+      changed_when: false
+
+    - name: Afficher les logs Zabbix pour débogage
+      debug:
+        var: zabbix_logs

@@ -1,0 +1,147 @@
+---
+- name: Assurer que le service Zabbix est actif et démarré
+  hosts: zabbix_server
+  become: yes
+  tasks:
+
+    - name: Activer le service Zabbix Server au démarrage
+      systemd:
+        name: zabbix-server
+        enabled: yes
+        state: started
+
+- name: Déployer les groupes et les hôtes Zabbix
+  hosts: zabbix_server
+  become: yes
+  tasks:
+
+    - name: Authentifier auprès de Zabbix et récupérer le token d'authentification
+      uri:
+        url: "http://{{ ansible_host }}/zabbix/api_jsonrpc.php"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body: |
+          {
+            "jsonrpc": "2.0",
+            "method": "user.login",
+            "params": {
+              "user": "Admin",
+              "password": "zabbix"
+            },
+            "id": 1
+          }
+        body_format: json
+        return_content: yes
+      register: auth_response
+
+    - name: Vérifier la réponse complète de l'authentification
+      debug:
+        var: auth_response
+
+    - name: Gérer les erreurs d'authentification
+      fail:
+        msg: "Échec de l'authentification : {{ auth_response.json.error.message }} - {{ auth_response.json.error.data }}"
+      when: auth_response.json.error is defined
+
+    - name: Définir le token d'authentification Zabbix
+      set_fact:
+        auth_token: "{{ auth_response.json.result }}"
+      when: auth_response.json.result is defined
+
+    - name: Vérifier la réponse de l'authentification et afficher le token
+      debug:
+        msg: "Token d'authentification Zabbix : {{ auth_token }}"
+      when: auth_token is defined
+
+    - name: Créer un groupe Zabbix "Administration"
+      uri:
+        url: "http://{{ ansible_host }}/zabbix/api_jsonrpc.php"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Authorization: "Bearer {{ auth_token }}"
+        body: |
+          {
+            "jsonrpc": "2.0",
+            "method": "hostgroup.create",
+            "params": {
+              "name": "Administration"
+            },
+            "auth": "{{ auth_token }}",
+            "id": 1
+          }
+        body_format: json
+        return_content: yes
+      register: group_creation_response
+
+    - name: Afficher la réponse de la création du groupe pour débogage
+      debug:
+        var: group_creation_response
+
+    - name: Créer un groupe Zabbix "Production"
+      uri:
+        url: "http://{{ ansible_host }}/zabbix/api_jsonrpc.php"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Authorization: "Bearer {{ auth_token }}"
+        body: |
+          {
+            "jsonrpc": "2.0",
+            "method": "hostgroup.create",
+            "params": {
+              "name": "Production"
+            },
+            "auth": "{{ auth_token }}",
+            "id": 1
+          }
+        body_format: json
+        return_content: yes
+      register: group_creation_response_prod
+
+    - name: Afficher la réponse de la création du groupe "Production" pour débogage
+      debug:
+        var: group_creation_response_prod
+
+    - name: Créer un groupe Zabbix "Web"
+      uri:
+        url: "http://{{ ansible_host }}/zabbix/api_jsonrpc.php"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Authorization: "Bearer {{ auth_token }}"
+        body: |
+          {
+            "jsonrpc": "2.0",
+            "method": "hostgroup.create",
+            "params": {
+              "name": "Web"
+            },
+            "auth": "{{ auth_token }}",
+            "id": 1
+          }
+        body_format: json
+        return_content: yes
+      register: group_creation_response_web
+
+    - name: Créer un groupe Zabbix "Test"
+      uri:
+        url: "http://{{ ansible_host }}/zabbix/api_jsonrpc.php"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+          Authorization: "Bearer {{ auth_token }}"
+        body: |
+          {
+            "jsonrpc": "2.0",
+            "method": "hostgroup.create",
+            "params": {
+              "name": "Test"
+            },
+            "auth": "{{ auth_token }}",
+            "id": 1
+          }
+        body_format: json
+        return_content: yes
+      register: group_creation_response_test

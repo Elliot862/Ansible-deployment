@@ -1,0 +1,17 @@
+---
+- name: Exécuter les procédures avec des playbooks génériques
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Lancer le playbook pour installer MariaDB
+      include_tasks: "~deployment/ressources/playbook/install-mariadb.yml"
+
+    - name: Lancer le playbook pour installer Apache2 et PHP
+      include_tasks: "~deployment/ressources/playbook/install-apache2.yml"
+
+    - name: Lancer la playbook pour installer python et ses dépendances
+      include_tasks: "~deployment/ressources/playbook/install-python.yml"
+
+    - name: Lancer le playbook pour installer Zabbix
+      include_tasks: "~deployment/ressources/playbook/install-zabbix-server.yml"
