@@ -1,0 +1,41 @@
+---
+
+- name: Installer Apache2
+  apt:
+    name: apache2
+    state: present
+  check_mode: no  # Cette tâche sera effectuée même en mode --check
+
+- name: Vérifier que le service Apache2 est actif
+  systemd:
+    name: apache2
+    state: started
+    enabled: yes
+  check_mode: no  # Cette tâche sera effectuée même en mode --check
+
+- name: Installer PHP et extensions requises
+  apt:
+    name:
+      - php
+      - php-cli
+      - php-common
+      - php-mysql
+      - libapache2-mod-php
+    state: present
+  check_mode: no  # Cette tâche sera effectuée même en mode --check
+
+- name: Redémarrer Apache2 pour activer PHP
+  systemd:
+    name: apache2
+    state: restarted
+  check_mode: no  # Cette tâche sera effectuée même en mode --check
+
+- name: Vérifier la version de PHP
+  command: php -v
+  register: php_version
+  check_mode: no  # Cette tâche sera effectuée même en mode --check
+
+- name: Afficher la version de PHP installée
+  debug:
+    msg: "Version de PHP installée : {{ php_version.stdout }}"
+  check_mode: no  # Cette tâche sera effectuée même en mode --check

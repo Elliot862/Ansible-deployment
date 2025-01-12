@@ -1,0 +1,115 @@
+---
+# install-zabbix-server.yml
+
+- name: Installer les paquets nécessaires
+  apt:
+    name:
+      - software-properties-common
+      - wget
+      - lsb-release
+    state: present
+
+- name: Ajouter la clé GPG pour le dépôt Zabbix
+  apt_key:
+    url: "http://repo.zabbix.com/zabbix-official-repo.key"
+    state: present
+
+- name: Installer le paquet de dépôt Zabbix pour Ubuntu 24.04
+  apt:
+    deb: "https://repo.zabbix.com/zabbix/7.2/release/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.2+ubuntu24.04_all.deb"
+    state: present
+
+- name: Mettre à jour la liste des paquets
+  apt:
+    update_cache: yes
+
+- name: Vérifier si les paquets Zabbix sont disponibles
+  shell: "apt-cache search zabbix-server-mysql"
+  register: zabbix_pkg_check
+  changed_when: false
+
+- name: Afficher la liste des paquets Zabbix disponibles
+  debug:
+    var: zabbix_pkg_check.stdout
+
+- name: Installer Zabbix Server, Web Frontend et Agent
+  apt:
+    name:
+      - zabbix-server-mysql
+      - zabbix-frontend-php
+      - zabbix-apache-conf
+      - zabbix-sql-scripts
+      - zabbix-agent
+    state: present
+
+- name: Démarrer et activer les services Apache et MariaDB
+  systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - apache2
+    - mariadb
+
+- name: Créer la base de données Zabbix et l'utilisateur
+  mysql_db:
+    name: zabbix
+    encoding: utf8mb4
+    collation: utf8mb4_bin
+    state: present
+    login_user: root
+    login_password: "password"  # Remplacez par le mot de passe root de votre base de données
+  become: yes
+
+- name: Créer un utilisateur zabbix et lui accorder des privilèges
+  community.mysql.mysql_user:
+    name: zabbix
+    password: "password"  # Remplacez par le mot de passe de l'utilisateur zabbix
+    priv: 'zabbix.*:ALL'
+    state: present
+    login_user: root
+    login_password: "password"  # Remplacez par le mot de passe root de votre base de données
+  become: yes
+
+
+
+- name: Activer log_bin_trust_function_creators pour l'importation
+  mysql_query:
+    login_user: root
+    login_password: "password"  # Remplacez par le mot de passe root de votre base de données
+    query: "SET GLOBAL log_bin_trust_function_creators = 1;"
+  become: yes
+
+- name: Importer le schéma de la base de données Zabbix
+  shell: "zcat /usr/share/zabbix/sql-scripts/mysql/server.sql.gz | mysql -uzabbix -ppassword --default-character-set=utf8mb4 zabbix"
+
+
+- name: Désactiver log_bin_trust_function_creators après l'importation
+  mysql_query:
+    login_user: root
+    login_password: "password"  # Remplacez par le mot de passe root de votre base de données
+    query: "SET GLOBAL log_bin_trust_function_creators = 0;"
+  become: yes
+
+
+
+
+
+- name: Configurer le fichier de configuration du serveur Zabbix
+  lineinfile:
+    path: /etc/zabbix/zabbix_server.conf
+    regexp: '^DBPassword='
+    line: 'DBPassword="password"'  # Remplacez par le mot de passe de la base de données Zabbix
+  become: yes  # Utiliser les privilèges sudo
+
+- name: Redémarrer le service Zabbix Server
+  systemd:
+    name: zabbix-server
+    state: restarted
+  become: yes  # Utiliser les privilèges sudo
+
+- name: Redémarrer le service Apache
+  systemd:
+    name: apache2
+    state: restarted
+  become: yes  # Utiliser les privilèges sudo

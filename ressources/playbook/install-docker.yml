@@ -1,0 +1,64 @@
+---
+# Tâches pour installer Docker sur Ubuntu
+
+- name: Update apt repository cache
+  apt:
+    update_cache: yes
+
+- name: Install necessary dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+    state: present
+
+- name: Install software-properties-common if missing
+  apt:
+    name: software-properties-common
+    state: present
+
+- name: Download Docker's official GPG key
+  get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /tmp/docker.gpg
+
+- name: Add Docker's GPG key to apt
+  apt_key:
+    file: /tmp/docker.gpg
+    state: present
+
+- name: Set up the Docker stable repository
+  command: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+- name: Update apt repository cache again after adding Docker repository
+  apt:
+    update_cache: yes
+
+- name: Install Docker Engine
+  apt:
+    name: docker-ce
+    state: present
+    update_cache: yes
+
+- name: Install Docker Compose Plugin
+  apt:
+    name: docker-compose-plugin
+    state: present
+
+- name: Install Docker Buildx Plugin
+  apt:
+    name: docker-buildx-plugin
+    state: present
+
+- name: Install Docker CLI
+  apt:
+    name: docker-ce-cli
+    state: present
+
+- name: Ensure Docker service is started
+  service:
+    name: docker
+    state: started
+    enabled: yes

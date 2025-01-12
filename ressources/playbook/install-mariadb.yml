@@ -1,0 +1,131 @@
+# install-mariadb.yml
+
+- name: Vérifier si MariaDB est déjà installé
+  apt:
+    name: mariadb-server
+    state: present
+  register: mariadb_installed
+  check_mode: no  # Toujours exécuter cette tâche, même en mode --check
+
+- name: Afficher l'état de MariaDB
+  debug:
+    msg: >
+      MariaDB est déjà installé : 
+      {{ 'Oui' if mariadb_installed.changed == false else 'Non, installation nécessaire.' }}
+
+- name: Installer les paquets nécessaires pour le dépôt
+  apt:
+    name:
+      - apt-transport-https
+      - curl
+    state: present
+
+- name: Créer le répertoire pour les clés APT
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Importer la clé GPG de MariaDB
+  get_url:
+    url: https://mariadb.org/mariadb_release_signing_key.pgp
+    dest: /etc/apt/keyrings/mariadb-keyring.pgp
+    mode: '0644'
+
+- name: Ajouter le dépôt MariaDB
+  copy:
+    dest: /etc/apt/sources.list.d/mariadb.sources
+    content: |
+      # MariaDB 11.4 repository list - created {{ ansible_date_time.iso8601 }}
+      X-Repolib-Name: MariaDB
+      Types: deb
+      URIs: https://mirrors.ircam.fr/pub/mariadb/repo/11.4/ubuntu
+      Suites: noble
+      Components: main
+      Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+
+- name: Mettre à jour la liste des paquets
+  apt:
+    update_cache: yes
+
+- name: Installer MariaDB Server 11.4
+  apt:
+    name: mariadb-server
+    state: present
+
+- name: Activer le service MariaDB pour qu'il se lance au démarrage
+  systemd:
+    name: mariadb
+    enabled: yes
+
+- name: Démarrer le service MariaDB
+  systemd:
+    name: mariadb
+    state: started
+
+- name: Vérifier que MariaDB est en cours d'exécution
+  command: systemctl is-active mariadb
+  register: mariadb_status
+  check_mode: no  # Exécuter cette tâche même en mode --check
+
+- name: Afficher l'état de MariaDB après installation
+  debug:
+    msg: >
+      Le service MariaDB est {{ mariadb_status.stdout | default('non défini') }}.
+      (Simulation ou mode normal)
+
+# --- Ajout de la sécurisation de MariaDB ---
+
+- name: Créer le fichier de configuration .my.cnf pour la connexion MySQL
+  copy:
+    dest: /root/.my.cnf
+    content: |
+      [client]
+      user=root
+      password="password"  # Remplacez par le mot de passe root
+      host=localhost
+      socket=/var/run/mysqld/mysqld.sock
+    owner: root
+    group: root
+    mode: '0600'  # Assurez-vous que le fichier est sécurisé
+
+- name: Configurer MariaDB (sécurisation)
+  mysql_user:
+    name: root
+    password: "password"
+    host: localhost
+    state: present
+    login_user: root
+    login_password: "password"  # Si vous avez défini un mot de passe root
+  become: yes  # Utiliser les privilèges sudo
+
+# --- Sécurisation de MariaDB --- 
+
+- name: Supprimer les utilisateurs anonymes
+  mysql_query:
+    login_user: root
+    login_password: "password"  # Si vous avez défini un mot de passe root
+    query: "DELETE FROM mysql.user WHERE User='';"
+  become: yes  # Utiliser les privilèges sudo
+
+- name: Supprimer la base de données test si elle existe
+  mysql_query:
+    login_user: root
+    login_password: "password"  # Si vous avez défini un mot de passe root
+    query: "DROP DATABASE IF EXISTS test;"
+  become: yes  # Utiliser les privilèges sudo
+
+- name: Supprimer les entrées liées à la base de données test dans mysql.db
+  mysql_query:
+    login_user: root
+    login_password: "password"  # Si vous avez défini un mot de passe root
+    query: "DELETE FROM mysql.db WHERE Db='test' OR Db='test_%';"
+  become: yes  # Utiliser les privilèges sudo
+
+- name: Appliquer les modifications de privilèges
+  mysql_query:
+    login_user: root
+    login_password: "password"  # Si vous avez défini un mot de passe root
+    query: "FLUSH PRIVILEGES;"
+  become: yes  # Utiliser les privilèges sudo
+

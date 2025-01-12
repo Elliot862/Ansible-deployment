@@ -1,0 +1,27 @@
+---
+- name: Installer les paquets Python3 nécessaires
+  apt:
+    name:
+      - python3
+      - python3-pip
+      - python3-dev
+      - python3-venv
+      - python3-setuptools
+    state: present
+    update_cache: yes
+
+- name: Installer le module Python MySQL (PyMySQL)
+  apt:
+    name: python3-pymysql
+    state: present
+
+- name: Vérifier que pip3 est installé
+  command: pip3 --version
+  register: pip_version
+  changed_when: false
+
+- name: Installer pip3 si nécessaire
+  apt:
+    name: python3-pip
+    state: present
+  when: pip_version.rc != 0
