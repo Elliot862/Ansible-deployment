@@ -1,0 +1,141 @@
+version: '3.8'
+
+###SERVICES###
+services:
+  # db pour les outils de monitoring
+  zabbix_db:
+    image: mariadb:latest
+    container_name: zabbix_db_container
+    restart: always
+    environment:
+      - MARIADB_DATABASE=${ZABBIX_DB}
+      - MARIADB_USER=${ZABBIX_USER} 
+      - MARIADB_ROOT_PASSWORD=${ZABBIX_PWD}
+    ports:
+      - 3307:3306
+    volumes:
+      - zabbix_db_volume:/var/lib/mysql
+  graphana_db:
+    image: mariadb:latest
+    container_name: graphana_db_container
+    restart: always
+    environment:
+      - MARIADB_DATABASE=${GRAPHANA_DB}
+      - MARIADB_USER=${GRAPHANA_USER}
+      - MARIADB_ROOT_PASSWORD=${GRAPHANA_PWD}
+    ports:
+      - 3308:3306
+    volumes:
+      - graphana_db_volume:/var/lib/mysql
+  
+  # db pour les outils de production
+  odoo_db:
+    image: mariadb:latest
+    container_name: odoo_db_container
+    restart: always
+    environment:
+      - MARIADB_DATABASE=${ODOO_DB}
+      - MARIADB_USER=${ODOO_USER}
+      - MARIADB_ROOT_PASSWORD=${ODOO_PWD}
+    ports:
+      - 3309:3306
+    volumes:
+      - odoo_db_volume:/var/lib/mysql
+  axelor_db:
+    image: mariadb:latest
+    container_name: axelor_db_container
+    restart: always
+    environment:
+      - MARIADB_DATABASE=${AXELOR_DB}
+      - MARIADB_USER=${AXELOR_USER} 
+      - MARIADB_ROOT_PASSWORD=${AXELOR_PWD}
+    ports:
+      - 3310:3306
+    volumes:
+      - axelor_db_volume:/var/lib/mysql
+  affine_db:
+    image: mariadb:latest
+    container_name: affine_db_container
+    restart: always
+    environment:
+      - MARIADB_DATABASE=${AFFINE_DB}
+      - MARIADB_USER=${AFFINE_USER} 
+      - MARIADB_ROOT_PASSWORD=${AFFINE_PWD}
+    ports:
+      - 3311:3306
+    volumes:
+      - affine_db_volume:/var/lib/mysql
+
+  # db pour les outils d'administration
+  jenkins_db:
+    image: mariadb:latest
+    container_name: jenkins_db_container
+    restart: always
+    environment:
+      - MARIADB_DATABASE=${JENKINS_DB}
+      - MARIADB_USER=${JENKINS_USER} 
+      - MARIADB_ROOT_PASSWORD=${JENKINS_PWD}
+    ports:
+      - 3312:3306
+    volumes:
+      - jenkins_db_volume:/var/lib/mysql
+  sonarqube_db:
+    image: mariadb:latest
+    container_name: sonarqube_db_container
+    restart: always
+    environment:
+      - MARIADB_DATABASE=${SONARQUBE_DB}
+      - MARIADB_USER=${SONARQUBE_USER}
+      - MARIADB_ROOT_PASSWORD=${SONARQUBE_PWD}
+    ports:
+      - 3313:3306
+    volumes:
+      - sonarqube_db_volume:/var/lib/mysql
+
+
+###VOLUMES###
+volumes:
+  zabbix_db_volume: 
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/administration/database/monitoring/zabbix
+      o: bind  
+  graphana_db_volume: 
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/administration/database/monitoring/graphana
+      o: bind  
+
+  odoo_db_volume:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/administration/database/production/odoo
+      o: bind  
+  axelor_db_volume:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/administration/database/production/axelor
+      o: bind  
+  affine_db_volume: 
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/administration/database/production/affine
+      o: bind  
+
+  jenkins_db_volume:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/administration/database/administration/jenkins
+      o: bind  
+  sonarqube_db_volume:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/administration/database/administration/sonarqube
+      o: bind  

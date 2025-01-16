@@ -1,0 +1,51 @@
+...
+- name: installation databse
+  hosts: all
+  become: true
+  tasks:
+    # create folder
+    - name: create folder for zabbix 
+      file:
+        state: directory
+        file: /home/administration/database/monitoring/zabbix
+    - name: create folder for graphana 
+      file:
+        state: directory
+        file: /home/administration/database/monitoring/graphana
+    - name: create folder for odoo 
+      file:
+        state: directory
+        file: /home/administration/database/monitoring/odoo
+    - name: create folder for axelor
+      file:
+        state: directory
+        file: /home/administration/database/monitoring/axelor
+    - name: create folder for affine
+      file:
+        state: directory
+        file: /home/administration/database/monitoring/affine
+    - name: create folder for jenkins
+      file:
+        state: directory
+        file: /home/administration/database/monitoring/jenkins
+    - name: create folder for sonarqube
+      file:
+        state: directory
+        file: /home/administration/database/monitoring/sonarqube
+    - name: create folder for docker
+      file:
+        state: directory
+        file: /home/administration/docker
+    # copy docker compose
+    - name: copy docker compose
+      copy:
+        src: /home/administration/deployment/database/mariadb/docker-compose.yml
+        bkp: /home/administration/docker/docker-compose.yml
+    # lancer le docker compose
+    - name: run docke compose
+      docker_compose:
+        project_src: /home/administration/docker/
+        files:
+          - docker-compose.yml
+        state: present
+
